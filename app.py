@@ -20,8 +20,7 @@ ARCHIVO_DATOS = "entrenamientos.csv"
 # Nombres de Usuarios
 USUARIOS = ["Santi", "Mel"]
 
-# ACTUALIZACIÓN: Definición de las rutinas semanales (CON SERIES Y DESCANSO)
-# El diccionario de ejercicios ahora incluye el campo 'rest' (ej: "1:30")
+# Definición de las rutinas semanales (CON SERIES Y DESCANSO)
 DICT_RUTINAS = {
     "Santi": {
         "Monday": [
@@ -128,13 +127,13 @@ if menu == "✍️ Registrar Rutina":
     ejercicios_opciones = []
     
     if ejercicios_del_dia[0]["name"] == "Descanso":
-         st.info(f"¡Hola {usuario_activo}! Hoy es **{dia_semana_espanol}**. Te toca: **¡Descanso!** 🧘")
+         st.info(f"¡Hola {usuario_activo}! Hoy es **{dia_semana_espanol}**. Te toca: **¡Descanso!** 🧘", icon="💪")
          ejercicios_opciones = ["Descanso"]
     else:
-        # NUEVA LÓGICA: Incluir el tiempo de descanso en el display
-        rutina_display_partes = [f"**{e['name']}** ({e['series']} series, ⏳ {e['rest']})" for e in ejercicios_del_dia]
-        rutina_display = "<br>".join(rutina_display_partes)
-        st.info(f"¡Hola {usuario_activo}! Hoy te toca:<br><br>{rutina_display}", icon="💪")
+        # NUEVA LÓGICA: Usamos "\n" y "*" para formatear como lista Markdown
+        rutina_display_partes = [f"* **{e['name']}** ({e['series']} series, ⏳ {e['rest']})" for e in ejercicios_del_dia]
+        rutina_display = "\n".join(rutina_display_partes)
+        st.info(f"¡Hola {usuario_activo}! Hoy te toca:\n\n{rutina_display}", icon="💪") # CORRECCIÓN: Eliminado <br> extra aquí
         
         # Lista solo con los nombres para el selectbox
         ejercicios_opciones = [e["name"] for e in ejercicios_del_dia]
@@ -229,11 +228,9 @@ if menu == "✍️ Registrar Rutina":
                 
                 if nuevos_registros:
                     # Cargar los datos existentes directamente del CSV (sin las columnas temporales 'index' y 'Volumen')
-                    # Hacemos esto para evitar problemas de re-ejecución con el DataFrame global
                     try:
                         df_existente = pd.read_csv(ARCHIVO_DATOS)
                     except FileNotFoundError:
-                        # Si el archivo no existe, creamos un DataFrame vacío con las columnas necesarias
                         df_existente = pd.DataFrame(columns=["Usuario", "Fecha", "Ejercicio", "Peso (kg)", "Reps", "Notas"])
 
                     nuevo_df = pd.DataFrame(nuevos_registros)
