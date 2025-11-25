@@ -15,12 +15,13 @@ def cargar_datos():
         df = pd.read_csv(ARCHIVO_DATOS)
         df['Fecha'] = pd.to_datetime(df['Fecha']).dt.date
         
-        # NUEVA FUNCIÓN: Cálculo de Volumen Total por registro
+        # Cálculo de Volumen Total por registro
         df['Volumen (kg)'] = df['Peso (kg)'] * df['Reps']
         
-        return df.sort_values(by='Fecha', ascending=False).reset_index(drop=True)
+        # MUY IMPORTANTE: Resetear el índice, pero SIN perder el índice anterior
+        return df.sort_values(by='Fecha', ascending=False).reset_index()
     else:
-        return pd.DataFrame(columns=["Fecha", "Ejercicio", "Peso (kg)", "Reps", "Notas"])
+        return pd.DataFrame(columns=["index", "Fecha", "Ejercicio", "Peso (kg)", "Reps", "Notas", "Volumen (kg)"]) # Actualizar columnas para nuevo index
 
 df = cargar_datos()
 
@@ -64,7 +65,7 @@ if menu == "✍️ Registrar Rutina":
             st.success("¡Entrenamiento guardado con éxito!")
 
 
-# --- 3. OPCIÓN B: VER HISTORIAL (Con ELIMINAR y VOLUMEN) ---
+# --- 3. OPCIÓN B: VER HISTORIAL (Arreglo del error de eliminación) ---
 elif menu == "📊 Ver Historial":
     st.subheader("Tu Progreso Detallado")
     
@@ -77,21 +78,21 @@ elif menu == "📊 Ver Historial":
         
         df_filtrado = df
         if ejercicio_elegido != "TODOS":
-            df_filtrado = df[df['Ejercicio'] == ejercicio_elegido].reset_index(drop=True)
+            df_filtrado = df[df['Ejercicio'] == ejercicio_elegido]
 
-        # Usamos 4 columnas para métricas (Nueva métrica de Volumen)
+        # Reiniciar índice para que los IDs sean 0, 1, 2... en la vista
+        df_filtrado = df_filtrado.reset_index()
+
         col_metrica1, col_metrica2, col_metrica3, col_metrica4 = st.columns(4)
         
         with col_metrica1:
-            total_registros = len(df_filtrado)
-            st.metric(label="Total de Series", value=f"{total_registros} Series")
+            st.metric(label="Total de Series", value=f"{len(df_filtrado)} Series")
         
         with col_metrica2:
             max_peso = df_filtrado['Peso (kg)'].max() if not df_filtrado.empty else 0
             st.metric(label="Peso Máximo (kg)", value=f"{max_peso} kg")
             
         with col_metrica3:
-            # ARREGLO DEL ERROR: Accedemos al objeto date directamente con .iloc[0]
             if not df.empty:
                  ultima_fecha = df['Fecha'].iloc[0].strftime('%d %b')
             else:
@@ -99,36 +100,39 @@ elif menu == "📊 Ver Historial":
             st.metric(label="Último Entrenamiento", value=ultima_fecha)
 
         with col_metrica4:
-             # NUEVA FUNCIÓN: Cálculo de Volumen Total para el filtro
             volumen_total = df_filtrado['Volumen (kg)'].sum() if not df_filtrado.empty else 0
-            # Formateamos el número para que se vea mejor
             st.metric(label="Volumen Total (kg)", value=f"{volumen_total:,.0f} kg")
 
         st.markdown("---")
         st.write(f"Historial de {ejercicio_elegido}:")
         
         # B. TABLA CON ÍNDICES PARA ELIMINAR
-        df_mostrar = df_filtrado.copy()
-        df_mostrar.insert(0, 'ID', df_mostrar.index)
+        # Mostrar la columna 'index' (que es el ID real en la tabla principal) como 'ID'
+        df_mostrar = df_filtrado[['index', 'Fecha', 'Ejercicio', 'Peso (kg)', 'Reps', 'Notas', 'Volumen (kg)']]
+        df_mostrar = df_mostrar.rename(columns={'index': 'ID'})
+
         st.dataframe(df_mostrar, use_container_width=True, hide_index=True)
         
         # C. SECCIÓN DE ELIMINACIÓN
         st.markdown("---")
         st.error("🚨 ¿Quieres eliminar un registro?")
         
+        # Las opciones ID son ahora los valores reales del índice original
         opciones_id = df_mostrar['ID'].tolist()
         
         if opciones_id:
             col_del1, col_del2 = st.columns([1, 4])
             
             with col_del1:
+                # El usuario selecciona el ID real
                 id_a_eliminar = st.selectbox("Selecciona el ID a eliminar:", opciones_id)
             
             with col_del2:
                 st.markdown('<br>', unsafe_allow_html=True)
                 if st.button("🔴 CONFIRMAR ELIMINACIÓN"):
-                    indice_real = df_filtrado.index[df_filtrado['ID'] == id_a_eliminar].tolist()[0]
-                    df = df.drop(index=indice_real).reset_index(drop=True)
+                    # ARREGLO FINAL: Usamos .drop(index=id_a_eliminar) ya que 'id_a_eliminar' 
+                    # ahora corresponde al índice real de la tabla principal (df)
+                    df = df.drop(index=id_a_eliminar).reset_index(drop=True)
                     
                     df.to_csv(ARCHIVO_DATOS, index=False)
                     st.warning(f"✅ ¡Registro ID {id_a_eliminar} eliminado! Presiona F5 para actualizar.")
