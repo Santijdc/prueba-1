@@ -2,8 +2,8 @@ import streamlit as st
 import pandas as pd
 from datetime import date, datetime
 import os
+import numpy as np
 import locale
-from streamlit_gsheets import GSheetsConnection 
 
 # Configuración regional para obtener el día de la semana
 try:
@@ -15,79 +15,64 @@ except locale.Error:
 st.set_page_config(page_title="Mi Diario de Gym", page_icon="🏋️‍♂️", layout="wide")
 st.title("🏋️‍♂️ Registro de Entrenamientos")
 
-# --- CONEXIÓN A GOOGLE SHEETS ---
-# Asume que ENTRENAMIENTOS_SHEET_ID y PROGRESOS_SHEET_ID están en secrets.toml
-try:
-    conn_entrenamientos = st.connection("gsheets_entrenamientos", type=GSheetsConnection, 
-                                        spreadsheet=st.secrets["ENTRENAMIENTOS_SHEET_ID"], 
-                                        worksheet="Registros")
-
-    conn_progresos = st.connection("gsheets_progresos", type=GSheetsConnection, 
-                                   spreadsheet=st.secrets["PROGRESOS_SHEET_ID"], 
-                                   worksheet="Medidas")
-except KeyError:
-    st.error("Error: Las IDs de las hojas de cálculo no están definidas en .streamlit/secrets.toml. Por favor, revisa el paso 3 de la conexión a Google Sheets.")
-    st.stop()
-except Exception as e:
-    st.error(f"Error de conexión a Google Sheets: {e}")
-    st.stop()
-
+# Archivos de datos
+ARCHIVO_DATOS = "entrenamientos.csv"
+ARCHIVO_PROGRESOS = "progresos.csv" # NUEVO: Archivo para peso y medidas
 
 # Nombres de Usuarios
 USUARIOS = ["Santi", "Mel"]
 
-# Definición de las rutinas semanales (CON SERIES, DESCANSO Y GRUPO MUSCULAR)
+# Definición de las rutinas semanales (CON SERIES Y DESCANSO)
 DICT_RUTINAS = {
     "Santi": {
         "Monday": [
-            {"name": "Press Inclinado Barra", "series": 4, "rest": "1:30", "group": "Pecho"},
-            {"name": "Press Inclinado Máquina", "series": 4, "rest": "1:30", "group": "Pecho"},
-            {"name": "Press Plano Máquina", "series": 4, "rest": "1:30", "group": "Pecho"}, 
-            {"name": "Triceps Tras Nuca", "series": 4, "rest": "1:00", "group": "Tríceps"}, 
-            {"name": "Elevaciones Laterales Polea", "series": 4, "rest": "1:00", "group": "Hombro Lateral"},
+            {"name": "Press Inclinado Barra", "series": 4, "rest": "1:30"},
+            {"name": "Press Inclinado Máquina", "series": 4, "rest": "1:30"},
+            {"name": "Press Plano Máquina", "series": 4, "rest": "1:30"}, 
+            {"name": "Triceps Tras Nuca", "series": 4, "rest": "1:00"}, 
+            {"name": "Elevaciones Laterales Polea", "series": 4, "rest": "1:00"},
         ],
         "Tuesday": [
-            {"name": "Sentadilla", "series": 3, "rest": "2:00", "group": "Cuádriceps"},
-            {"name": "Femoral Sentado", "series": 4, "rest": "1:30", "group": "Femorales"},
-            {"name": "Prensa", "series": 3, "rest": "2:00", "group": "Cuádriceps"},
-            {"name": "Sillón Cuádriceps", "series": 3, "rest": "1:30", "group": "Cuádriceps"},
-            {"name": "Gemelo", "series": 4, "rest": "1:00", "group": "Gemelos"},
+            {"name": "Sentadilla", "series": 3, "rest": "2:00"},
+            {"name": "Femoral Sentado", "series": 4, "rest": "1:30"},
+            {"name": "Prensa", "series": 3, "rest": "2:00"},
+            {"name": "Sillón Cuádriceps", "series": 3, "rest": "1:30"},
+            {"name": "Gemelo", "series": 4, "rest": "1:00"},
         ],
         "Wednesday": [
-            {"name": "Jalón al Pecho", "series": 4, "rest": "1:30", "group": "Espalda"},
-            {"name": "Remo Máquina", "series": 4, "rest": "1:30", "group": "Espalda"},
-            {"name": "Remo Gironda", "series": 4, "rest": "1:30", "group": "Espalda"},
-            {"name": "Bíceps con Barra", "series": 4, "rest": "1:00", "group": "Bíceps"},
-            {"name": "Elevaciones Laterales Polea", "series": 4, "rest": "1:00", "group": "Hombro Lateral"},
+            {"name": "Jalón al Pecho", "series": 4, "rest": "1:30"},
+            {"name": "Remo Máquina", "series": 4, "rest": "1:30"},
+            {"name": "Remo Gironda", "series": 4, "rest": "1:30"},
+            {"name": "Bíceps con Barra", "series": 4, "rest": "1:00"},
+            {"name": "Elevaciones Laterales Polea", "series": 4, "rest": "1:00"},
         ],
         "Thursday": [
-            {"name": "Press Inclinado Barra", "series": 4, "rest": "1:30", "group": "Pecho"},
-            {"name": "Jalón al Pecho", "series": 4, "rest": "1:30", "group": "Espalda"},
-            {"name": "Posterior en Polea", "series": 4, "rest": "1:30", "group": "Hombro Posterior"},
-            {"name": "Triceps Tras Nuca", "series": 4, "rest": "1:00", "group": "Tríceps"},
-            {"name": "Bíceps en Polea", "series": 4, "rest": "1:00", "group": "Bíceps"},
-            {"name": "Elevaciones Laterales Polea", "series": 4, "rest": "1:00", "group": "Hombro Lateral"},
+            {"name": "Press Inclinado Barra", "series": 4, "rest": "1:30"},
+            {"name": "Jalón al Pecho", "series": 4, "rest": "1:30"},
+            {"name": "Posterior en Polea", "series": 4, "rest": "1:30"},
+            {"name": "Triceps Tras Nuca", "series": 4, "rest": "1:00"},
+            {"name": "Bíceps en Polea", "series": 4, "rest": "1:00"},
+            {"name": "Elevaciones Laterales Polea", "series": 4, "rest": "1:00"},
         ],
         "Friday": [
-            {"name": "Peso Muerto Rumano", "series": 3, "rest": "2:00", "group": "Femorales"},
-            {"name": "Prensa", "series": 3, "rest": "2:00", "group": "Cuádriceps"},
-            {"name": "Camilla Femorales", "series": 4, "rest": "1:30", "group": "Femorales"},
-            {"name": "Sillón Cuádriceps", "series": 4, "rest": "1:30", "group": "Cuádriceps"},
+            {"name": "Peso Muerto Rumano", "series": 3, "rest": "2:00"},
+            {"name": "Prensa", "series": 3, "rest": "2:00"},
+            {"name": "Camilla Femorales", "series": 4, "rest": "1:30"},
+            {"name": "Sillón Cuádriceps", "series": 4, "rest": "1:30"},
         ],
-        "Saturday": [{"name": "Descanso", "series": 0, "rest": "N/A", "group": "Descanso"}],
-        "Sunday": [{"name": "Descanso", "series": 0, "rest": "N/A", "group": "Descanso"}]
+        "Saturday": [{"name": "Descanso", "series": 0, "rest": "N/A"}],
+        "Sunday": [{"name": "Descanso", "series": 0, "rest": "N/A"}]
     },
     "Mel": {
-        "Monday": [{"name": "Descanso", "series": 0, "rest": "N/A", "group": "Descanso"}],
-        "Tuesday": [{"name": "Descanso", "series": 0, "rest": "N/A", "group": "Descanso"}],
-        "Wednesday": [{"name": "Descanso", "series": 0, "rest": "N/A", "group": "Descanso"}],
-        "Thursday": [{"name": "Descanso", "series": 0, "rest": "N/A", "group": "Descanso"}],
-        "Friday": [{"name": "Descanso", "series": 0, "rest": "N/A", "group": "Descanso"}],
-        "Saturday": [{"name": "Descanso", "series": 0, "rest": "N/A", "group": "Descanso"}],
-        "Sunday": [{"name": "Descanso", "series": 0, "rest": "N/A", "group": "Descanso"}]
+        "Monday": [{"name": "Descanso", "series": 0, "rest": "N/A"}],
+        "Tuesday": [{"name": "Descanso", "series": 0, "rest": "N/A"}],
+        "Wednesday": [{"name": "Descanso", "series": 0, "rest": "N/A"}],
+        "Thursday": [{"name": "Descanso", "series": 0, "rest": "N/A"}],
+        "Friday": [{"name": "Descanso", "series": 0, "rest": "N/A"}],
+        "Saturday": [{"name": "Descanso", "series": 0, "rest": "N/A"}],
+        "Sunday": [{"name": "Descanso", "series": 0, "rest": "N/A"}]
     }
 }
-
 
 # Los días de la semana en el orden correcto
 DIAS_SEMANA_ORDEN = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
@@ -97,57 +82,44 @@ DIAS_SEMANA_ESPANOL = {
 }
 
 
-# --- Funciones de Carga de Datos (Usando Google Sheets) ---
+# --- Funciones de Carga de Datos ---
 
-@st.cache_data(ttl=5) # Cachea los datos por 5 segundos
-def cargar_datos_entrenamiento(reset_index=True):
-    """Carga los datos de entrenamiento desde Google Sheets."""
-    try:
-        # Lee hasta la columna F (6 columnas: Usuario, Fecha, Ejercicio, Peso, Reps, Notas)
-        df = conn_entrenamientos.read(ttl=5, usecols=list(range(6)))
-        df = df.dropna(how="all")
+def cargar_datos(reset_index=True):
+    """Carga los datos de entrenamiento."""
+    if os.path.exists(ARCHIVO_DATOS):
+        df = pd.read_csv(ARCHIVO_DATOS)
         
-        # Procesamiento de Datos
-        df['Fecha'] = pd.to_datetime(df['Fecha']).apply(lambda x: x.date())
-        df['Peso (kg)'] = pd.to_numeric(df['Peso (kg)'], errors='coerce')
-        df['Reps'] = pd.to_numeric(df['Reps'], errors='coerce', downcast='integer')
+        # Convertir a datetime y luego a date object
+        df['Fecha'] = pd.to_datetime(df['Fecha']).apply(lambda x: x.date()) 
+        
+        if 'Notas' not in df.columns:
+            df['Notas'] = " "
+        
         df['Volumen (kg)'] = df['Peso (kg)'] * df['Reps']
         
-        df['Notas'] = df['Notas'].fillna(" ")
-        df['Usuario'] = df['Usuario'].fillna(USUARIOS[0])
+        if 'Usuario' not in df.columns:
+            df['Usuario'] = USUARIOS[0] 
         
-        df = df[(df['Peso (kg)'] > 0) & (df['Reps'] > 0)]
-
         if reset_index:
              return df.sort_values(by='Fecha', ascending=False).reset_index()
         else:
              return df.sort_values(by='Fecha', ascending=False)
-    except Exception as e:
-        # Si la hoja está vacía o hay un error de conexión, devuelve un DataFrame vacío
-        # st.error(f"Error al cargar datos de entrenamiento: {e}")
+    else:
         return pd.DataFrame(columns=["index", "Usuario", "Fecha", "Ejercicio", "Peso (kg)", "Reps", "Notas", "Volumen (kg)"])
 
-
-@st.cache_data(ttl=5) # Cachea los datos por 5 segundos
 def cargar_progresos():
-    """Carga los datos de peso y medidas desde Google Sheets."""
-    columnas_progreso = ["Usuario", "Fecha", "Peso (kg)", "Cintura (cm)", "Pecho (cm)", "Brazo (cm)", "Pierna (cm)"]
-    try:
-        df = conn_progresos.read(ttl=5, usecols=list(range(7)))
-        df = df.dropna(how="all")
-        
-        # Procesamiento de Datos
+    """NUEVA FUNCIÓN: Carga los datos de peso y medidas."""
+    columnas = ["Usuario", "Fecha", "Peso (kg)", "Cintura (cm)", "Pecho (cm)", "Brazo (cm)", "Pierna (cm)"]
+    if os.path.exists(ARCHIVO_PROGRESOS):
+        df = pd.read_csv(ARCHIVO_PROGRESOS)
+        # Asegurar que la columna Fecha sea tipo date
         df['Fecha'] = pd.to_datetime(df['Fecha']).apply(lambda x: x.date())
-        for col in columnas_progreso[2:]:
-             df[col] = pd.to_numeric(df[col], errors='coerce')
-
         return df.sort_values(by='Fecha', ascending=False)
-    except Exception as e:
-        # st.error(f"Error al cargar datos de progreso: {e}")
-        return pd.DataFrame(columns=columnas_progreso)
+    else:
+        return pd.DataFrame(columns=columnas)
 
 
-df = cargar_datos_entrenamiento()
+df = cargar_datos()
 df_progresos = cargar_progresos()
 
 # --- LÓGICA DE RUTINA DEL DÍA ---
@@ -164,14 +136,11 @@ usuario_activo = st.sidebar.selectbox("👤 ¿Quién registra/consulta?", USUARI
 
 menu = st.sidebar.radio("Elige una opción:", ["✍️ Registrar Rutina", "📏 Registro de Progreso", "📅 Ver Rutina Semanal", "📊 Ver Historial"])
 
-# -----------------------------------------------------------------------------------
 # --- SECCIÓN: REGISTRAR RUTINA ---
-# -----------------------------------------------------------------------------------
-
 if menu == "✍️ Registrar Rutina":
     
     # Obtener la rutina del día (lista de diccionarios)
-    ejercicios_del_dia = DICT_RUTINAS[usuario_activo].get(dia_semana_ingles, [{"name": "Descanso", "series": 0, "rest": "N/A", "group": "Descanso"}])
+    ejercicios_del_dia = DICT_RUTINAS[usuario_activo].get(dia_semana_ingles, [{"name": "Descanso", "series": 0, "rest": "N/A"}])
     
     st.subheader(f"🗓️ {dia_semana_espanol}, {fecha_actual}")
     
@@ -260,16 +229,18 @@ if menu == "✍️ Registrar Rutina":
             guardar_button = st.form_submit_button(f"✅ Guardar {series_count} Series de {ejercicio_a_registrar}")
 
             if guardar_button:
-                # 4. Lógica de Guardado en Sheets
+                # 4. Lógica de Guardado por Lotes (Batch Save)
                 nuevos_registros = []
                 for i in range(1, series_count + 1):
+                    # Recuperar valores del estado de la sesión
                     peso_val = st.session_state.get(f'peso_{i}', 0.0)
                     reps_val = st.session_state.get(f'reps_{i}', 0)
                     
+                    # Solo guardar series con valores válidos (mayor a cero)
                     if peso_val > 0.0 and reps_val > 0:
                         nuevos_registros.append({
                             "Usuario": usuario_activo,
-                            "Fecha": fecha.strftime('%Y-%m-%d'), # Formato de fecha para Sheets
+                            "Fecha": fecha,
                             "Ejercicio": ejercicio_a_registrar,
                             "Peso (kg)": peso_val,
                             "Reps": reps_val,
@@ -277,11 +248,19 @@ if menu == "✍️ Registrar Rutina":
                         })
                 
                 if nuevos_registros:
-                    conn_entrenamientos.append(data=nuevos_registros, worksheet="Registros")
+                    # Cargar los datos existentes directamente del CSV 
+                    try:
+                        df_existente = pd.read_csv(ARCHIVO_DATOS)
+                    except FileNotFoundError:
+                        df_existente = pd.DataFrame(columns=["Usuario", "Fecha", "Ejercicio", "Peso (kg)", "Reps", "Notas"])
+
+                    nuevo_df = pd.DataFrame(nuevos_registros)
                     
-                    # Limpiar caché para forzar la recarga de datos al ir al historial
-                    st.cache_data.clear() 
-                    st.success(f"¡{len(nuevos_registros)} series de {ejercicio_a_registrar} guardadas con éxito en Google Sheets!")
+                    # Concatenar y guardar el DataFrame final
+                    df_final = pd.concat([df_existente, nuevo_df], ignore_index=True)
+                    df_final.to_csv(ARCHIVO_DATOS, index=False)
+                    
+                    st.success(f"¡{len(nuevos_registros)} series de {ejercicio_a_registrar} guardadas con éxito para {usuario_activo}!")
                     st.rerun() 
                 else:
                     st.warning("No se guardó ninguna serie. Asegúrate de ingresar Peso y Repeticiones mayores a cero.")
@@ -293,6 +272,7 @@ if menu == "✍️ Registrar Rutina":
 ## --- SECCIÓN: REGISTRO DE PROGRESO (PESO Y MEDIDAS) ---
 
 elif menu == "📏 Registro de Progreso":
+    # CORRECCIÓN: st.header(f"Registro de Peso y Medidas: **{usuario_activo}** 📏")
     st.header(f"Registro de Peso y Medidas: **{usuario_activo}** 📏")
     st.info("Registra tu peso corporal y tus medidas para seguir tu evolución física.")
     
@@ -333,7 +313,7 @@ elif menu == "📏 Registro de Progreso":
             if peso_corporal > 0.0:
                 nuevo_registro = {
                     "Usuario": usuario_activo,
-                    "Fecha": fecha_progreso.strftime('%Y-%m-%d'), 
+                    "Fecha": fecha_progreso,
                     "Peso (kg)": peso_corporal,
                     "Cintura (cm)": cintura,
                     "Pecho (cm)": pecho,
@@ -341,9 +321,15 @@ elif menu == "📏 Registro de Progreso":
                     "Pierna (cm)": pierna,
                 }
                 
-                conn_progresos.append(data=[nuevo_registro], worksheet="Medidas")
-                st.cache_data.clear() 
-                st.success(f"¡Progreso de peso y medidas guardado con éxito en Google Sheets!")
+                # Cargar el DataFrame de progresos y añadir el nuevo registro
+                df_progresos_existente = cargar_progresos()
+                df_nuevo = pd.DataFrame([nuevo_registro])
+                
+                # Concatenar y guardar el DataFrame final
+                df_final_progresos = pd.concat([df_progresos_existente, df_nuevo], ignore_index=True)
+                df_final_progresos.to_csv(ARCHIVO_PROGRESOS, index=False)
+                
+                st.success(f"¡Progreso de peso y medidas guardado con éxito para {usuario_activo}!")
                 st.rerun()
             else:
                 st.warning("Debes ingresar el Peso Corporal (kg) para guardar el progreso.")
@@ -353,6 +339,7 @@ elif menu == "📏 Registro de Progreso":
     df_progreso_usuario = df_progresos[df_progresos['Usuario'] == usuario_activo].drop(columns=['Usuario']).reset_index(drop=True)
 
     if not df_progreso_usuario.empty:
+        # Revertir el orden para que lo más reciente esté arriba
         df_progreso_usuario_mostrar = df_progreso_usuario.sort_values(by='Fecha', ascending=False)
         st.dataframe(df_progreso_usuario_mostrar, use_container_width=True, hide_index=True)
         
@@ -366,66 +353,19 @@ elif menu == "📏 Registro de Progreso":
 
 # -----------------------------------------------------------------------------------
 
-## --- SECCIÓN: VER RUTINA SEMANAL (Con Cálculo de Volumen Semanal) ---
+## --- SECCIÓN: VER RUTINA SEMANAL ---
 
 elif menu == "📅 Ver Rutina Semanal":
     
     st.header(f"Plan Semanal de Entrenamiento: **{usuario_activo}** 💪")
     
+    # Obtener la rutina completa del usuario activo
     rutina_semanal = DICT_RUTINAS[usuario_activo]
-    
-    # -----------------------------------------------------
-    # LÓGICA DE CÁLCULO DE VOLUMEN SEMANAL POR GRUPO MUSCULAR
-    # -----------------------------------------------------
-    
-    volumen_semanal = {}
-    
-    # 1. Iterar sobre todos los días y ejercicios
-    for dia_ingles in DIAS_SEMANA_ORDEN:
-        ejercicios_dia = rutina_semanal.get(dia_ingles, [])
-        for ejercicio in ejercicios_dia:
-            # Asegúrate de que 'group' exista y no sea "Descanso"
-            group = ejercicio.get("group")
-            series = ejercicio.get("series", 0)
-            
-            # 2. Sumar las series al grupo muscular correspondiente
-            if group and group != "Descanso":
-                if group in volumen_semanal:
-                    volumen_semanal[group] += series
-                else:
-                    volumen_semanal[group] = series
-
-    # 3. Crear el DataFrame para visualización
-    df_volumen = pd.DataFrame(
-        volumen_semanal.items(), 
-        columns=["Grupo Muscular", "Total Series Semanales"]
-    ).sort_values(by="Total Series Semanales", ascending=False).reset_index(drop=True)
-    
-    # 4. Mostrar el resumen en una tabla
-    st.subheader("Total de Series (Volumen) Semanal por Grupo Muscular")
-    
-    def highlight_series(s):
-        # Resalta el volumen alto
-        is_high = s > 12  
-        return ['background-color: #034f84; color: white' if v else '' for v in is_high]
-        
-    st.dataframe(
-        df_volumen.style.apply(highlight_series, subset=['Total Series Semanales']),
-        use_container_width=True, 
-        hide_index=True
-    )
-    
-    st.markdown("---")
-    st.subheader("Detalle Diario")
-    
-    # -----------------------------------------------------
-    # DETALLE DE LA RUTINA DIARIA 
-    # -----------------------------------------------------
     
     # Iterar sobre los días en orden (Lunes a Domingo)
     for dia_ingles in DIAS_SEMANA_ORDEN:
         dia_espanol = DIAS_SEMANA_ESPANOL.get(dia_ingles, dia_ingles) # Traducir día
-        ejercicios_dia = rutina_semanal.get(dia_ingles, [{"name": "Error", "series": 0, "rest": "N/A", "group": "Descanso"}])
+        ejercicios_dia = rutina_semanal.get(dia_ingles, [{"name": "Error", "series": 0, "rest": "N/A"}])
         
         # Usar la columna para la presentación del día
         with st.expander(f"**{dia_espanol}**"):
@@ -439,11 +379,11 @@ elif menu == "📅 Ver Rutina Semanal":
                         "Ejercicio": e['name'],
                         "Series": e['series'],
                         "Descanso ⏳": e['rest'],
-                        "Grupo": e['group'] # Incluimos el grupo en el detalle
                     }
-                    for e in ejercicios_dia if e.get('group') != "Descanso"
+                    for e in ejercicios_dia
                 ]
                 df_rutina = pd.DataFrame(data)
+                # Ocultar el índice y usar el contenedor completo
                 st.dataframe(df_rutina, use_container_width=True, hide_index=True)
 
 
@@ -452,7 +392,8 @@ elif menu == "📅 Ver Rutina Semanal":
 # --- SECCIÓN: VER HISTORIAL ---
 elif menu == "📊 Ver Historial":
     
-    df_actual = cargar_datos_entrenamiento(reset_index=True) 
+    # Cargar datos con reset_index=True para la visualización
+    df_actual = cargar_datos(reset_index=True) 
     df_usuario = df_actual[df_actual['Usuario'] == usuario_activo]
     
     st.subheader(f"Tu Progreso Detallado: {usuario_activo}")
@@ -493,18 +434,41 @@ elif menu == "📊 Ver Historial":
         st.markdown("---")
         st.write(f"Historial de {ejercicio_elegido} para {usuario_activo}:")
         
-        # B. TABLA CON ÍNDICES 
+        # B. TABLA CON ÍNDICES PARA ELIMINAR
         df_mostrar = df_filtrado[['index', 'Fecha', 'Ejercicio', 'Peso (kg)', 'Reps', 'Volumen (kg)']]
         df_mostrar = df_mostrar.rename(columns={'index': 'ID'})
 
         st.dataframe(df_mostrar, use_container_width=True, hide_index=True)
         
-        # C. SECCIÓN DE ELIMINACIÓN (Simplificada)
+        # C. SECCIÓN DE ELIMINACIÓN
         st.markdown("---")
-        st.warning("⚠️ **Nota de Eliminación:** La eliminación de filas es compleja con Google Sheets. Si necesitas borrar algo, hazlo directamente en tu hoja de Google Sheets.")
-
+        st.error(f"🚨 ¿Quieres eliminar un registro de {usuario_activo}?")
+        
+        opciones_id = df_mostrar['ID'].tolist()
+        
+        if opciones_id:
+            col_del1, col_del2 = st.columns([1, 4])
+            
+            with col_del1:
+                id_a_eliminar = st.selectbox("Selecciona el ID a eliminar:", opciones_id)
+            
+            with col_del2:
+                st.markdown('<br>', unsafe_allow_html=True)
+                if st.button(f"🔴 CONFIRMAR ELIMINACIÓN de ID {id_a_eliminar}"):
+                    # Cargar los datos sin el index temporal para poder borrar por el índice real
+                    df_base = cargar_datos(reset_index=False)
+                    # Asegurarse de que el índice a borrar exista
+                    if id_a_eliminar in df_base.index:
+                        df_base = df_base.drop(index=id_a_eliminar)
+                        df_base.to_csv(ARCHIVO_DATOS, index=False)
+                        st.warning(f"✅ ¡Registro ID {id_a_eliminar} de {usuario_activo} eliminado! Presiona F5 para actualizar.")
+                        st.rerun()
+                    else:
+                        st.error("Error: El ID seleccionado no existe.")
+        else:
+            st.info(f"No hay registros para eliminar en este filtro para {usuario_activo}.")
 
         # D. Gráfico
         if ejercicio_elegido != "TODOS" and len(df_filtrado) > 1:
-            st.markdown("### Gráfico de Peso por Sesión") 
+            st.markdown("### Gráfico de Progreso") 
             st.line_chart(df_filtrado.set_index('Fecha')['Peso (kg)'])
