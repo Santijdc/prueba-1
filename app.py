@@ -17,30 +17,59 @@ st.title("🏋️‍♂️ Registro de Entrenamientos")
 
 ARCHIVO_DATOS = "entrenamientos.csv"
 
-# ACTUALIZACIÓN: Nombres de Usuarios
+# Nombres de Usuarios
 USUARIOS = ["Santi", "Mel"]
 
-# NUEVA FUNCIÓN: Definición de las rutinas semanales
-# Ahora DICT_RUTINAS contiene una LISTA de ejercicios para el selectbox
+# ACTUALIZACIÓN: Definición de las rutinas semanales (CON SERIES)
+# La rutina ahora es una lista de diccionarios: [{"name": "Ejercicio", "series": 4}, ...]
 DICT_RUTINAS = {
     "Santi": {
-        "Monday": ["Press Inclinado Barra", "Press Inclinado Máquina", "Press Plano Máquina", "Triceps Tras Nuca", "Elevaciones Laterales Polea"],
-        "Tuesday": ["Sentadilla", "Femoral Sentado", "Prensa", "Sillón Cuádriceps", "Gemelo"],
-        "Wednesday": ["Jalón al Pecho", "Remo Máquina", "Remo Gironda", "Bíceps con Barra", "Elevaciones Laterales Polea"],
-        "Thursday": ["Press Inclinado Barra", "Jalón al Pecho", "Posterior en Polea", "Triceps Tras Nuca", "Bíceps en Polea", "Elevaciones Laterales Polea"],
-        "Friday": ["Peso Muerto Rumano", "Prensa", "Camilla Femorales", "Sillón Cuádriceps"],
-        "Saturday": ["Descanso"],
-        "Sunday": ["Descanso"]
+        "Monday": [
+            {"name": "Press Inclinado Barra", "series": 4},
+            {"name": "Press Inclinado Máquina", "series": 4},
+            {"name": "Press Plano Máquina", "series": 4}, 
+            {"name": "Triceps Tras Nuca", "series": 4}, 
+            {"name": "Elevaciones Laterales Polea", "series": 4},
+        ],
+        "Tuesday": [
+            {"name": "Sentadilla", "series": 3},
+            {"name": "Femoral Sentado", "series": 4},
+            {"name": "Prensa", "series": 3},
+            {"name": "Sillón Cuádriceps", "series": 3},
+            {"name": "Gemelo", "series": 4},
+        ],
+        "Wednesday": [
+            {"name": "Jalón al Pecho", "series": 4},
+            {"name": "Remo Máquina", "series": 4},
+            {"name": "Remo Gironda", "series": 4},
+            {"name": "Bíceps con Barra", "series": 4},
+            {"name": "Elevaciones Laterales Polea", "series": 4},
+        ],
+        "Thursday": [
+            {"name": "Press Inclinado Barra", "series": 4},
+            {"name": "Jalón al Pecho", "series": 4},
+            {"name": "Posterior en Polea", "series": 4},
+            {"name": "Triceps Tras Nuca", "series": 4},
+            {"name": "Bíceps en Polea", "series": 4},
+            {"name": "Elevaciones Laterales Polea", "series": 4},
+        ],
+        "Friday": [
+            {"name": "Peso Muerto Rumano", "series": 3},
+            {"name": "Prensa", "series": 3},
+            {"name": "Camilla Femorales", "series": 4},
+            {"name": "Sillón Cuádriceps", "series": 4},
+        ],
+        "Saturday": [{"name": "Descanso", "series": 0}],
+        "Sunday": [{"name": "Descanso", "series": 0}]
     },
     "Mel": {
-        # Rutinas de Mel (usaremos Descanso o una lista vacía para no mostrar opciones)
-        "Monday": ["Descanso"],
-        "Tuesday": ["Descanso"],
-        "Wednesday": ["Descanso"],
-        "Thursday": ["Descanso"],
-        "Friday": ["Descanso"],
-        "Saturday": ["Descanso"],
-        "Sunday": ["Descanso"]
+        "Monday": [{"name": "Descanso", "series": 0}],
+        "Tuesday": [{"name": "Descanso", "series": 0}],
+        "Wednesday": [{"name": "Descanso", "series": 0}],
+        "Thursday": [{"name": "Descanso", "series": 0}],
+        "Friday": [{"name": "Descanso", "series": 0}],
+        "Saturday": [{"name": "Descanso", "series": 0}],
+        "Sunday": [{"name": "Descanso", "series": 0}]
     }
 }
 
@@ -56,7 +85,8 @@ def cargar_datos():
         
         return df.sort_values(by='Fecha', ascending=False).reset_index()
     else:
-        return pd.DataFrame(columns=["index", "Usuario", "Fecha", "Ejercicio", "Peso (kg)", "Reps", "Notas", "Volumen (kg)"])
+        # Quitamos "Notas" de las columnas de inicialización
+        return pd.DataFrame(columns=["index", "Usuario", "Fecha", "Ejercicio", "Peso (kg)", "Reps", "Volumen (kg)"])
 
 df = cargar_datos()
 
@@ -76,26 +106,31 @@ menu = st.sidebar.radio("Elige una opción:", ["✍️ Registrar Rutina", "📊 
 
 if menu == "✍️ Registrar Rutina":
     
-    # Obtener la rutina del día
-    ejercicios_hoy = DICT_RUTINAS[usuario_activo].get(dia_semana_ingles, ["Descanso"])
+    # Obtener la rutina del día (lista de diccionarios)
+    ejercicios_del_dia = DICT_RUTINAS[usuario_activo].get(dia_semana_ingles, [{"name": "Descanso", "series": 0}])
     
     st.subheader(f"🗓️ {dia_semana_espanol}, {fecha_actual}")
     
-    # Mostrar la rutina en un recuadro destacado
-    if ejercicios_hoy == ["Descanso"]:
+    # NUEVA LÓGICA: Construir la lista de ejercicios para mostrar y para el selectbox
+    
+    if ejercicios_del_dia[0]["name"] == "Descanso":
          st.info(f"¡Hola {usuario_activo}! Hoy es **{dia_semana_espanol}**. Te toca: **¡Descanso!** 🧘")
          ejercicios_opciones = ["Descanso"]
+         rutina_display_partes = []
     else:
-        # Se muestra la lista de ejercicios para el día
-        rutina_display = ", ".join(ejercicios_hoy)
-        st.info(f"¡Hola {usuario_activo}! Hoy te toca: **{rutina_display}**")
-        ejercicios_opciones = ejercicios_hoy
+        # Construye la cadena de texto para mostrar (ej: Press Inclinado Barra (4 series))
+        rutina_display_partes = [f"**{e['name']}** ({e['series']} series)" for e in ejercicios_del_dia]
+        rutina_display = ", ".join(rutina_display_partes)
+        st.info(f"¡Hola {usuario_activo}! Hoy te toca: {rutina_display}")
+        
+        # Lista solo con los nombres para el selectbox
+        ejercicios_opciones = [e["name"] for e in ejercicios_del_dia]
+
 
     # --- Formulario de Registro ---
     st.subheader(f"Registro de Serie")
     
     with st.form("registro_form"):
-        # Quitamos la columna de Notas/Sensaciones (ANTES ERAN 3 COLUMNAS, AHORA 2)
         col1, col2 = st.columns(2) 
         
         with col1:
@@ -107,9 +142,6 @@ if menu == "✍️ Registrar Rutina":
         with col2:
             peso = st.number_input("Peso (kg)", min_value=0.0, step=0.5, key='peso')
             reps = st.number_input("Repeticiones", min_value=1, step=1, key='reps')
-            
-            # ELIMINAR NOTAS: La quitamos de aquí y de la lógica de guardado
-            # st.text_area("Notas o sensaciones", ...) 
 
         st.markdown("---")
         guardar_button = st.form_submit_button("✅ Guardar Serie")
@@ -121,7 +153,6 @@ if menu == "✍️ Registrar Rutina":
                 "Ejercicio": [ejercicio],
                 "Peso (kg)": [peso],
                 "Reps": [reps],
-                # Notas se guarda como un string vacío para mantener la estructura de columnas
                 "Notas": [" "], 
             })
             
@@ -177,7 +208,6 @@ elif menu == "📊 Ver Historial":
         st.write(f"Historial de {ejercicio_elegido} para {usuario_activo}:")
         
         # B. TABLA CON ÍNDICES PARA ELIMINAR
-        # Quitamos 'Notas' de la tabla para que se vea más limpio
         df_mostrar = df_filtrado[['index', 'Fecha', 'Ejercicio', 'Peso (kg)', 'Reps', 'Volumen (kg)']]
         df_mostrar = df_mostrar.rename(columns={'index': 'ID'})
 
@@ -207,5 +237,4 @@ elif menu == "📊 Ver Historial":
 
         # D. Gráfico
         if ejercicio_elegido != "TODOS" and len(df_filtrado) > 1:
-            st.markdown("### Gráfico de Progreso")
-            st.line_chart(df_filtrado.set_index('Fecha')['Peso (kg)'])
+            st.markdown("### Gráfico de
