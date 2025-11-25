@@ -1,0 +1,9 @@
+[theme]
+# Puedes cambiar 'light' por 'dark' si quieres un modo más claro
+base="dark"
+# El color principal (puedes buscar códigos de color Hex en Google)
+primaryColor="#FF4B4B" # Un rojo vibrante para el gym
+backgroundColor="#0E1117"
+secondaryBackgroundColor="#262730"
+textColor="#FAFAFA"
+font="sans serif"
