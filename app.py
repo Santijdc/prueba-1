@@ -15,7 +15,9 @@ except locale.Error:
 st.set_page_config(page_title="Mi Diario de Gym", page_icon="🏋️‍♂️", layout="wide")
 st.title("🏋️‍♂️ Registro de Entrenamientos")
 
+# Archivos de datos
 ARCHIVO_DATOS = "entrenamientos.csv"
+ARCHIVO_PROGRESOS = "progresos.csv" # NUEVO: Archivo para peso y medidas
 
 # Nombres de Usuarios
 USUARIOS = ["Santi", "Mel"]
@@ -80,35 +82,45 @@ DIAS_SEMANA_ESPANOL = {
 }
 
 
-# La función cargar_datos ya no es global para evitar problemas de re-ejecución
+# --- Funciones de Carga de Datos ---
+
 def cargar_datos(reset_index=True):
+    """Carga los datos de entrenamiento."""
     if os.path.exists(ARCHIVO_DATOS):
         df = pd.read_csv(ARCHIVO_DATOS)
         
         # Convertir a datetime y luego a date object
         df['Fecha'] = pd.to_datetime(df['Fecha']).apply(lambda x: x.date()) 
         
-        # Asegurar columna Notas para registros antiguos que no la tienen
         if 'Notas' not in df.columns:
             df['Notas'] = " "
         
-        # Cálculo de Volumen Total por registro
         df['Volumen (kg)'] = df['Peso (kg)'] * df['Reps']
         
         if 'Usuario' not in df.columns:
             df['Usuario'] = USUARIOS[0] 
         
         if reset_index:
-             # Retornamos el index para usarlo como ID de eliminación
              return df.sort_values(by='Fecha', ascending=False).reset_index()
         else:
-             # Para guardar, retornamos el DataFrame sin el índice extra
              return df.sort_values(by='Fecha', ascending=False)
     else:
-        # Quitamos "Notas" de las columnas de inicialización
         return pd.DataFrame(columns=["index", "Usuario", "Fecha", "Ejercicio", "Peso (kg)", "Reps", "Notas", "Volumen (kg)"])
 
+def cargar_progresos():
+    """NUEVA FUNCIÓN: Carga los datos de peso y medidas."""
+    columnas = ["Usuario", "Fecha", "Peso (kg)", "Cintura (cm)", "Pecho (cm)", "Brazo (cm)", "Pierna (cm)"]
+    if os.path.exists(ARCHIVO_PROGRESOS):
+        df = pd.read_csv(ARCHIVO_PROGRESOS)
+        # Asegurar que la columna Fecha sea tipo date
+        df['Fecha'] = pd.to_datetime(df['Fecha']).apply(lambda x: x.date())
+        return df.sort_values(by='Fecha', ascending=False)
+    else:
+        return pd.DataFrame(columns=columnas)
+
+
 df = cargar_datos()
+df_progresos = cargar_progresos()
 
 # --- LÓGICA DE RUTINA DEL DÍA ---
 hoy = datetime.now()
@@ -122,7 +134,7 @@ st.sidebar.header("Menú")
 
 usuario_activo = st.sidebar.selectbox("👤 ¿Quién registra/consulta?", USUARIOS)
 
-menu = st.sidebar.radio("Elige una opción:", ["✍️ Registrar Rutina", "📅 Ver Rutina Semanal", "📊 Ver Historial"])
+menu = st.sidebar.radio("Elige una opción:", ["✍️ Registrar Rutina", "📏 Registro de Progreso", "📅 Ver Rutina Semanal", "📊 Ver Historial"])
 
 # --- SECCIÓN: REGISTRAR RUTINA ---
 if menu == "✍️ Registrar Rutina":
@@ -257,122 +269,7 @@ if menu == "✍️ Registrar Rutina":
 
 # -----------------------------------------------------------------------------------
 
-## --- NUEVA SECCIÓN: VER RUTINA SEMANAL ---
+## --- NUEVA SECCIÓN: REGISTRO DE PROGRESO (PESO Y MEDIDAS) ---
 
-elif menu == "📅 Ver Rutina Semanal":
-    
-    st.header(f"Plan Semanal de Entrenamiento: **{usuario_activo}** 💪")
-    
-    # Obtener la rutina completa del usuario activo
-    rutina_semanal = DICT_RUTINAS[usuario_activo]
-    
-    # Iterar sobre los días en orden (Lunes a Domingo)
-    for dia_ingles in DIAS_SEMANA_ORDEN:
-        dia_espanol = DIAS_SEMANA_ESPANOL.get(dia_ingles, dia_ingles) # Traducir día
-        ejercicios_dia = rutina_semanal.get(dia_ingles, [{"name": "Error", "series": 0, "rest": "N/A"}])
-        
-        # Usar la columna para la presentación del día
-        with st.expander(f"**{dia_espanol}**"):
-            
-            if ejercicios_dia[0]["name"] == "Descanso":
-                st.info("¡Descanso! 🧘")
-            else:
-                # Crear un DataFrame para mostrar el detalle de la rutina
-                data = [
-                    {
-                        "Ejercicio": e['name'],
-                        "Series": e['series'],
-                        "Descanso ⏳": e['rest'],
-                    }
-                    for e in ejercicios_dia
-                ]
-                df_rutina = pd.DataFrame(data)
-                # Ocultar el índice y usar el contenedor completo
-                st.dataframe(df_rutina, use_container_width=True, hide_index=True)
-
-
-# -----------------------------------------------------------------------------------
-
-# --- SECCIÓN: VER HISTORIAL ---
-elif menu == "📊 Ver Historial":
-    
-    # Cargar datos con reset_index=True para la visualización
-    df_actual = cargar_datos(reset_index=True) 
-    df_usuario = df_actual[df_actual['Usuario'] == usuario_activo]
-    
-    st.subheader(f"Tu Progreso Detallado: {usuario_activo}")
-    
-    if df_usuario.empty:
-        st.info(f"Aún no tienes registros, {usuario_activo}.")
-    else:
-        # A. FILTRADO SECUNDARIO Y MÉTRICAS
-        ejercicios_unicos = df_usuario['Ejercicio'].unique().tolist()
-        ejercicio_elegido = st.selectbox("Filtrar por Ejercicio:", ["TODOS"] + ejercicios_unicos)
-        
-        df_filtrado = df_usuario
-        if ejercicio_elegido != "TODOS":
-            df_filtrado = df_usuario[df_usuario['Ejercicio'] == ejercicio_elegido]
-
-        df_filtrado = df_filtrado.reset_index()
-
-        col_metrica1, col_metrica2, col_metrica3, col_metrica4 = st.columns(4)
-        
-        with col_metrica1:
-            st.metric(label="Total de Series", value=f"{len(df_filtrado)} Series")
-        
-        with col_metrica2:
-            max_peso = df_filtrado['Peso (kg)'].max() if not df_filtrado.empty else 0
-            st.metric(label="Peso Máximo (kg)", value=f"{max_peso} kg")
-            
-        with col_metrica3:
-            if not df_usuario.empty: 
-                 ultima_fecha = df_actual['Fecha'].iloc[0].strftime('%d %b') 
-            else:
-                 ultima_fecha = "N/A"
-            st.metric(label="Último Entrenamiento", value=ultima_fecha)
-
-        with col_metrica4:
-            volumen_total = df_filtrado['Volumen (kg)'].sum() if not df_filtrado.empty else 0
-            st.metric(label="Volumen Total (kg)", value=f"{volumen_total:,.0f} kg")
-
-        st.markdown("---")
-        st.write(f"Historial de {ejercicio_elegido} para {usuario_activo}:")
-        
-        # B. TABLA CON ÍNDICES PARA ELIMINAR
-        df_mostrar = df_filtrado[['index', 'Fecha', 'Ejercicio', 'Peso (kg)', 'Reps', 'Volumen (kg)']]
-        df_mostrar = df_mostrar.rename(columns={'index': 'ID'})
-
-        st.dataframe(df_mostrar, use_container_width=True, hide_index=True)
-        
-        # C. SECCIÓN DE ELIMINACIÓN
-        st.markdown("---")
-        st.error(f"🚨 ¿Quieres eliminar un registro de {usuario_activo}?")
-        
-        opciones_id = df_mostrar['ID'].tolist()
-        
-        if opciones_id:
-            col_del1, col_del2 = st.columns([1, 4])
-            
-            with col_del1:
-                id_a_eliminar = st.selectbox("Selecciona el ID a eliminar:", opciones_id)
-            
-            with col_del2:
-                st.markdown('<br>', unsafe_allow_html=True)
-                if st.button(f"🔴 CONFIRMAR ELIMINACIÓN de ID {id_a_eliminar}"):
-                    # Cargar los datos sin el index temporal para poder borrar por el índice real
-                    df_base = cargar_datos(reset_index=False)
-                    # Asegurarse de que el índice a borrar exista
-                    if id_a_eliminar in df_base.index:
-                        df_base = df_base.drop(index=id_a_eliminar)
-                        df_base.to_csv(ARCHIVO_DATOS, index=False)
-                        st.warning(f"✅ ¡Registro ID {id_a_eliminar} de {usuario_activo} eliminado! Presiona F5 para actualizar.")
-                        st.rerun()
-                    else:
-                        st.error("Error: El ID seleccionado no existe.")
-        else:
-            st.info(f"No hay registros para eliminar en este filtro para {usuario_activo}.")
-
-        # D. Gráfico
-        if ejercicio_elegido != "TODOS" and len(df_filtrado) > 1:
-            st.markdown("### Gráfico de Progreso") 
-            st.line_chart(df_filtrado.set_index('Fecha')['Peso (kg)'])
+elif menu == "📏 Registro de Progreso":
+    st.header(f
