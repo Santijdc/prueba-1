@@ -237,4 +237,5 @@ elif menu == "📊 Ver Historial":
 
         # D. Gráfico
         if ejercicio_elegido != "TODOS" and len(df_filtrado) > 1:
-            st.markdown("### Gráfico de
+            st.markdown("### Gráfico de Progreso") # CORRECCIÓN APLICADA AQUÍ
+            st.line_chart(df_filtrado.set_index('Fecha')['Peso (kg)'])
