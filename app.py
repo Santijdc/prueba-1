@@ -20,55 +20,56 @@ ARCHIVO_DATOS = "entrenamientos.csv"
 # Nombres de Usuarios
 USUARIOS = ["Santi", "Mel"]
 
-# Definición de las rutinas semanales (CON SERIES)
+# ACTUALIZACIÓN: Definición de las rutinas semanales (CON SERIES Y DESCANSO)
+# El diccionario de ejercicios ahora incluye el campo 'rest' (ej: "1:30")
 DICT_RUTINAS = {
     "Santi": {
         "Monday": [
-            {"name": "Press Inclinado Barra", "series": 4},
-            {"name": "Press Inclinado Máquina", "series": 4},
-            {"name": "Press Plano Máquina", "series": 4}, 
-            {"name": "Triceps Tras Nuca", "series": 4}, 
-            {"name": "Elevaciones Laterales Polea", "series": 4},
+            {"name": "Press Inclinado Barra", "series": 4, "rest": "1:30"},
+            {"name": "Press Inclinado Máquina", "series": 4, "rest": "1:30"},
+            {"name": "Press Plano Máquina", "series": 4, "rest": "1:30"}, 
+            {"name": "Triceps Tras Nuca", "series": 4, "rest": "1:00"}, 
+            {"name": "Elevaciones Laterales Polea", "series": 4, "rest": "1:00"},
         ],
         "Tuesday": [
-            {"name": "Sentadilla", "series": 3},
-            {"name": "Femoral Sentado", "series": 4},
-            {"name": "Prensa", "series": 3},
-            {"name": "Sillón Cuádriceps", "series": 3},
-            {"name": "Gemelo", "series": 4},
+            {"name": "Sentadilla", "series": 3, "rest": "2:00"},
+            {"name": "Femoral Sentado", "series": 4, "rest": "1:30"},
+            {"name": "Prensa", "series": 3, "rest": "2:00"},
+            {"name": "Sillón Cuádriceps", "series": 3, "rest": "1:30"},
+            {"name": "Gemelo", "series": 4, "rest": "1:00"},
         ],
         "Wednesday": [
-            {"name": "Jalón al Pecho", "series": 4},
-            {"name": "Remo Máquina", "series": 4},
-            {"name": "Remo Gironda", "series": 4},
-            {"name": "Bíceps con Barra", "series": 4},
-            {"name": "Elevaciones Laterales Polea", "series": 4},
+            {"name": "Jalón al Pecho", "series": 4, "rest": "1:30"},
+            {"name": "Remo Máquina", "series": 4, "rest": "1:30"},
+            {"name": "Remo Gironda", "series": 4, "rest": "1:30"},
+            {"name": "Bíceps con Barra", "series": 4, "rest": "1:00"},
+            {"name": "Elevaciones Laterales Polea", "series": 4, "rest": "1:00"},
         ],
         "Thursday": [
-            {"name": "Press Inclinado Barra", "series": 4},
-            {"name": "Jalón al Pecho", "series": 4},
-            {"name": "Posterior en Polea", "series": 4},
-            {"name": "Triceps Tras Nuca", "series": 4},
-            {"name": "Bíceps en Polea", "series": 4},
-            {"name": "Elevaciones Laterales Polea", "series": 4},
+            {"name": "Press Inclinado Barra", "series": 4, "rest": "1:30"},
+            {"name": "Jalón al Pecho", "series": 4, "rest": "1:30"},
+            {"name": "Posterior en Polea", "series": 4, "rest": "1:30"},
+            {"name": "Triceps Tras Nuca", "series": 4, "rest": "1:00"},
+            {"name": "Bíceps en Polea", "series": 4, "rest": "1:00"},
+            {"name": "Elevaciones Laterales Polea", "series": 4, "rest": "1:00"},
         ],
         "Friday": [
-            {"name": "Peso Muerto Rumano", "series": 3},
-            {"name": "Prensa", "series": 3},
-            {"name": "Camilla Femorales", "series": 4},
-            {"name": "Sillón Cuádriceps", "series": 4},
+            {"name": "Peso Muerto Rumano", "series": 3, "rest": "2:00"},
+            {"name": "Prensa", "series": 3, "rest": "2:00"},
+            {"name": "Camilla Femorales", "series": 4, "rest": "1:30"},
+            {"name": "Sillón Cuádriceps", "series": 4, "rest": "1:30"},
         ],
-        "Saturday": [{"name": "Descanso", "series": 0}],
-        "Sunday": [{"name": "Descanso", "series": 0}]
+        "Saturday": [{"name": "Descanso", "series": 0, "rest": "N/A"}],
+        "Sunday": [{"name": "Descanso", "series": 0, "rest": "N/A"}]
     },
     "Mel": {
-        "Monday": [{"name": "Descanso", "series": 0}],
-        "Tuesday": [{"name": "Descanso", "series": 0}],
-        "Wednesday": [{"name": "Descanso", "series": 0}],
-        "Thursday": [{"name": "Descanso", "series": 0}],
-        "Friday": [{"name": "Descanso", "series": 0}],
-        "Saturday": [{"name": "Descanso", "series": 0}],
-        "Sunday": [{"name": "Descanso", "series": 0}]
+        "Monday": [{"name": "Descanso", "series": 0, "rest": "N/A"}],
+        "Tuesday": [{"name": "Descanso", "series": 0, "rest": "N/A"}],
+        "Wednesday": [{"name": "Descanso", "series": 0, "rest": "N/A"}],
+        "Thursday": [{"name": "Descanso", "series": 0, "rest": "N/A"}],
+        "Friday": [{"name": "Descanso", "series": 0, "rest": "N/A"}],
+        "Saturday": [{"name": "Descanso", "series": 0, "rest": "N/A"}],
+        "Sunday": [{"name": "Descanso", "series": 0, "rest": "N/A"}]
     }
 }
 
@@ -119,7 +120,7 @@ menu = st.sidebar.radio("Elige una opción:", ["✍️ Registrar Rutina", "📊 
 if menu == "✍️ Registrar Rutina":
     
     # Obtener la rutina del día (lista de diccionarios)
-    ejercicios_del_dia = DICT_RUTINAS[usuario_activo].get(dia_semana_ingles, [{"name": "Descanso", "series": 0}])
+    ejercicios_del_dia = DICT_RUTINAS[usuario_activo].get(dia_semana_ingles, [{"name": "Descanso", "series": 0, "rest": "N/A"}])
     
     st.subheader(f"🗓️ {dia_semana_espanol}, {fecha_actual}")
     
@@ -129,12 +130,11 @@ if menu == "✍️ Registrar Rutina":
     if ejercicios_del_dia[0]["name"] == "Descanso":
          st.info(f"¡Hola {usuario_activo}! Hoy es **{dia_semana_espanol}**. Te toca: **¡Descanso!** 🧘")
          ejercicios_opciones = ["Descanso"]
-         rutina_display_partes = []
     else:
-        # Construye la cadena de texto para mostrar (ej: Press Inclinado Barra (4 series))
-        rutina_display_partes = [f"**{e['name']}** ({e['series']} series)" for e in ejercicios_del_dia]
-        rutina_display = ", ".join(rutina_display_partes)
-        st.info(f"¡Hola {usuario_activo}! Hoy te toca: {rutina_display}")
+        # NUEVA LÓGICA: Incluir el tiempo de descanso en el display
+        rutina_display_partes = [f"**{e['name']}** ({e['series']} series, ⏳ {e['rest']})" for e in ejercicios_del_dia]
+        rutina_display = "<br>".join(rutina_display_partes)
+        st.info(f"¡Hola {usuario_activo}! Hoy te toca:<br><br>{rutina_display}", icon="💪")
         
         # Lista solo con los nombres para el selectbox
         ejercicios_opciones = [e["name"] for e in ejercicios_del_dia]
@@ -150,17 +150,21 @@ if menu == "✍️ Registrar Rutina":
         key='ej_reg'
     )
 
-    # 2. Encontrar el número de series planificadas
+    # 2. Encontrar el número de series planificadas Y el tiempo de descanso
     series_count = 0
+    rest_time = ""
     if ejercicio_a_registrar != "Descanso":
         for e in ejercicios_del_dia:
             if e["name"] == ejercicio_a_registrar:
                 series_count = e["series"]
+                rest_time = e["rest"]
                 break
     
     # 3. Generar el formulario dinámico
     if series_count > 0:
         st.markdown("---")
+        # Mostrar el tiempo de descanso planificado para el ejercicio seleccionado
+        st.markdown(f"⏱️ **Descanso planificado:** **{rest_time}** entre series.")
         st.markdown(f"**Ingresa los datos de tus {series_count} series de {ejercicio_a_registrar}**")
         
         with st.form("registro_multiple_form"):
@@ -188,7 +192,7 @@ if menu == "✍️ Registrar Rutina":
                         step=0.5, 
                         value=0.0, 
                         key=f'peso_{i}', 
-                        label_visibility='collapsed' # Ocultar la etiqueta del número
+                        label_visibility='collapsed' 
                     )
                 with colC:
                     # Input de Repeticiones
@@ -225,7 +229,13 @@ if menu == "✍️ Registrar Rutina":
                 
                 if nuevos_registros:
                     # Cargar los datos existentes directamente del CSV (sin las columnas temporales 'index' y 'Volumen')
-                    df_existente = pd.read_csv(ARCHIVO_DATOS)
+                    # Hacemos esto para evitar problemas de re-ejecución con el DataFrame global
+                    try:
+                        df_existente = pd.read_csv(ARCHIVO_DATOS)
+                    except FileNotFoundError:
+                        # Si el archivo no existe, creamos un DataFrame vacío con las columnas necesarias
+                        df_existente = pd.DataFrame(columns=["Usuario", "Fecha", "Ejercicio", "Peso (kg)", "Reps", "Notas"])
+
                     nuevo_df = pd.DataFrame(nuevos_registros)
                     
                     # Concatenar y guardar el DataFrame final
@@ -233,7 +243,6 @@ if menu == "✍️ Registrar Rutina":
                     df_final.to_csv(ARCHIVO_DATOS, index=False)
                     
                     st.success(f"¡{len(nuevos_registros)} series de {ejercicio_a_registrar} guardadas con éxito para {usuario_activo}!")
-                    # Recargar la app para limpiar el formulario
                     st.rerun() 
                 else:
                     st.warning("No se guardó ninguna serie. Asegúrate de ingresar Peso y Repeticiones mayores a cero.")
@@ -263,4 +272,64 @@ elif menu == "📊 Ver Historial":
 
         df_filtrado = df_filtrado.reset_index()
 
-        col_metrica1, col_met
+        col_metrica1, col_metrica2, col_metrica3, col_metrica4 = st.columns(4)
+        
+        with col_metrica1:
+            st.metric(label="Total de Series", value=f"{len(df_filtrado)} Series")
+        
+        with col_metrica2:
+            max_peso = df_filtrado['Peso (kg)'].max() if not df_filtrado.empty else 0
+            st.metric(label="Peso Máximo (kg)", value=f"{max_peso} kg")
+            
+        with col_metrica3:
+            if not df_usuario.empty: 
+                 ultima_fecha = df_actual['Fecha'].iloc[0].strftime('%d %b') 
+            else:
+                 ultima_fecha = "N/A"
+            st.metric(label="Último Entrenamiento", value=ultima_fecha)
+
+        with col_metrica4:
+            volumen_total = df_filtrado['Volumen (kg)'].sum() if not df_filtrado.empty else 0
+            st.metric(label="Volumen Total (kg)", value=f"{volumen_total:,.0f} kg")
+
+        st.markdown("---")
+        st.write(f"Historial de {ejercicio_elegido} para {usuario_activo}:")
+        
+        # B. TABLA CON ÍNDICES PARA ELIMINAR
+        df_mostrar = df_filtrado[['index', 'Fecha', 'Ejercicio', 'Peso (kg)', 'Reps', 'Volumen (kg)']]
+        df_mostrar = df_mostrar.rename(columns={'index': 'ID'})
+
+        st.dataframe(df_mostrar, use_container_width=True, hide_index=True)
+        
+        # C. SECCIÓN DE ELIMINACIÓN
+        st.markdown("---")
+        st.error(f"🚨 ¿Quieres eliminar un registro de {usuario_activo}?")
+        
+        opciones_id = df_mostrar['ID'].tolist()
+        
+        if opciones_id:
+            col_del1, col_del2 = st.columns([1, 4])
+            
+            with col_del1:
+                id_a_eliminar = st.selectbox("Selecciona el ID a eliminar:", opciones_id)
+            
+            with col_del2:
+                st.markdown('<br>', unsafe_allow_html=True)
+                if st.button(f"🔴 CONFIRMAR ELIMINACIÓN de ID {id_a_eliminar}"):
+                    # Cargar los datos sin el index temporal para poder borrar por el índice real
+                    df_base = cargar_datos(reset_index=False)
+                    # Asegurarse de que el índice a borrar exista
+                    if id_a_eliminar in df_base.index:
+                        df_base = df_base.drop(index=id_a_eliminar)
+                        df_base.to_csv(ARCHIVO_DATOS, index=False)
+                        st.warning(f"✅ ¡Registro ID {id_a_eliminar} de {usuario_activo} eliminado! Presiona F5 para actualizar.")
+                        st.rerun()
+                    else:
+                        st.error("Error: El ID seleccionado no existe.")
+        else:
+            st.info(f"No hay registros para eliminar en este filtro para {usuario_activo}.")
+
+        # D. Gráfico
+        if ejercicio_elegido != "TODOS" and len(df_filtrado) > 1:
+            st.markdown("### Gráfico de Progreso") 
+            st.line_chart(df_filtrado.set_index('Fecha')['Peso (kg)'])
