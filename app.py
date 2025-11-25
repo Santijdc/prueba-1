@@ -5,11 +5,10 @@ import os
 import numpy as np
 import locale
 
-# Configuración regional para obtener el día de la semana en español
+# Configuración regional para obtener el día de la semana
 try:
     locale.setlocale(locale.LC_TIME, 'es_ES.UTF-8')
 except locale.Error:
-    # Si 'es_ES.UTF-8' falla (común en Streamlit Cloud), usamos la configuración por defecto
     pass 
 
 # --- 1. Configuración de la página ---
@@ -22,24 +21,26 @@ ARCHIVO_DATOS = "entrenamientos.csv"
 USUARIOS = ["Santi", "Mel"]
 
 # NUEVA FUNCIÓN: Definición de las rutinas semanales
+# Ahora DICT_RUTINAS contiene una LISTA de ejercicios para el selectbox
 DICT_RUTINAS = {
     "Santi": {
-        "Monday": "Pecho/Hombro/Tríceps (Preses, Laterales, Triceps T.N.)",
-        "Tuesday": "Pierna (Sentadilla, Femoral, Prensa, Cuádriceps, Gemelo)",
-        "Wednesday": "Espalda/Bíceps/Hombro (Jalones, Remos, Bíceps Barra, Laterales)",
-        "Thursday": "Full Body Especial (Preses, Jalones, Posteriores, Triceps, Bíceps, Laterales)",
-        "Friday": "Pierna Completa (Peso Muerto Rumano, Prensa, Femorales, Cuádriceps)",
-        "Saturday": "Descanso",
-        "Sunday": "Descanso"
+        "Monday": ["Press Inclinado Barra", "Press Inclinado Máquina", "Press Plano Máquina", "Triceps Tras Nuca", "Elevaciones Laterales Polea"],
+        "Tuesday": ["Sentadilla", "Femoral Sentado", "Prensa", "Sillón Cuádriceps", "Gemelo"],
+        "Wednesday": ["Jalón al Pecho", "Remo Máquina", "Remo Gironda", "Bíceps con Barra", "Elevaciones Laterales Polea"],
+        "Thursday": ["Press Inclinado Barra", "Jalón al Pecho", "Posterior en Polea", "Triceps Tras Nuca", "Bíceps en Polea", "Elevaciones Laterales Polea"],
+        "Friday": ["Peso Muerto Rumano", "Prensa", "Camilla Femorales", "Sillón Cuádriceps"],
+        "Saturday": ["Descanso"],
+        "Sunday": ["Descanso"]
     },
     "Mel": {
-        "Monday": "Descanso (Rutina no definida)",
-        "Tuesday": "Descanso (Rutina no definida)",
-        "Wednesday": "Descanso (Rutina no definida)",
-        "Thursday": "Descanso (Rutina no definida)",
-        "Friday": "Descanso (Rutina no definida)",
-        "Saturday": "Descanso",
-        "Sunday": "Descanso"
+        # Rutinas de Mel (usaremos Descanso o una lista vacía para no mostrar opciones)
+        "Monday": ["Descanso"],
+        "Tuesday": ["Descanso"],
+        "Wednesday": ["Descanso"],
+        "Thursday": ["Descanso"],
+        "Friday": ["Descanso"],
+        "Saturday": ["Descanso"],
+        "Sunday": ["Descanso"]
     }
 }
 
@@ -61,12 +62,12 @@ df = cargar_datos()
 
 # --- LÓGICA DE RUTINA DEL DÍA ---
 hoy = datetime.now()
-dia_semana_ingles = hoy.strftime('%A') # Obtiene el día de la semana en inglés (ej: Monday)
-dia_semana_espanol = hoy.strftime('%A').capitalize() # Formato español para mostrar
+dia_semana_ingles = hoy.strftime('%A')
+dia_semana_espanol = hoy.strftime('%A').capitalize()
 fecha_actual = hoy.strftime('%d/%m/%Y')
 
 
-# --- 2. Menú lateral (Registro) ---
+# --- 2. Menú lateral ---
 st.sidebar.header("Menú")
 
 usuario_activo = st.sidebar.selectbox("👤 ¿Quién registra/consulta?", USUARIOS)
@@ -75,49 +76,61 @@ menu = st.sidebar.radio("Elige una opción:", ["✍️ Registrar Rutina", "📊 
 
 if menu == "✍️ Registrar Rutina":
     
-    # NUEVA FUNCIÓN: Mostrar la rutina del día
-    rutina_hoy = DICT_RUTINAS[usuario_activo].get(dia_semana_ingles, "Descanso")
+    # Obtener la rutina del día
+    ejercicios_hoy = DICT_RUTINAS[usuario_activo].get(dia_semana_ingles, ["Descanso"])
     
     st.subheader(f"🗓️ {dia_semana_espanol}, {fecha_actual}")
     
     # Mostrar la rutina en un recuadro destacado
-    st.info(f"¡Hola {usuario_activo}! Hoy te toca: **{rutina_hoy}**")
+    if ejercicios_hoy == ["Descanso"]:
+         st.info(f"¡Hola {usuario_activo}! Hoy es **{dia_semana_espanol}**. Te toca: **¡Descanso!** 🧘")
+         ejercicios_opciones = ["Descanso"]
+    else:
+        # Se muestra la lista de ejercicios para el día
+        rutina_display = ", ".join(ejercicios_hoy)
+        st.info(f"¡Hola {usuario_activo}! Hoy te toca: **{rutina_display}**")
+        ejercicios_opciones = ejercicios_hoy
 
-    # Formulario
-    st.subheader(f"Registro para {usuario_activo}")
+    # --- Formulario de Registro ---
+    st.subheader(f"Registro de Serie")
     
     with st.form("registro_form"):
-        col1, col2, col3 = st.columns(3)
+        # Quitamos la columna de Notas/Sensaciones (ANTES ERAN 3 COLUMNAS, AHORA 2)
+        col1, col2 = st.columns(2) 
         
         with col1:
             fecha = st.date_input("Fecha", date.today(), key='date')
-            ejercicio = st.selectbox("Ejercicio", ["Sentadilla", "Press Banca", "Peso Muerto", "Dominadas", "Press Militar", "Otro"], key='ej')
+            
+            # FILTRADO DE EJERCICIOS
+            ejercicio = st.selectbox("Ejercicio", ejercicios_opciones, key='ej')
         
         with col2:
             peso = st.number_input("Peso (kg)", min_value=0.0, step=0.5, key='peso')
             reps = st.number_input("Repeticiones", min_value=1, step=1, key='reps')
-
-        with col3:
-            st.markdown(" ")
-            notas = st.text_area("Notas o sensaciones", height=100, placeholder="Ej: Récord personal, me sentí cansado...", key='notas')
+            
+            # ELIMINAR NOTAS: La quitamos de aquí y de la lógica de guardado
+            # st.text_area("Notas o sensaciones", ...) 
 
         st.markdown("---")
         guardar_button = st.form_submit_button("✅ Guardar Serie")
 
-        if guardar_button:
+        if guardar_button and ejercicio != "Descanso":
             nuevo_registro = pd.DataFrame({
                 "Usuario": [usuario_activo],
                 "Fecha": [fecha],
                 "Ejercicio": [ejercicio],
                 "Peso (kg)": [peso],
                 "Reps": [reps],
-                "Notas": [notas]
+                # Notas se guarda como un string vacío para mantener la estructura de columnas
+                "Notas": [" "], 
             })
             
             df = pd.concat([df, nuevo_registro], ignore_index=True)
             df.to_csv(ARCHIVO_DATOS, index=False)
             
             st.success(f"¡Entrenamiento de {usuario_activo} guardado con éxito!")
+        elif guardar_button and ejercicio == "Descanso":
+             st.warning("No puedes registrar una serie si seleccionas 'Descanso'.")
 
 
 # --- 3. OPCIÓN B: VER HISTORIAL ---
@@ -164,7 +177,8 @@ elif menu == "📊 Ver Historial":
         st.write(f"Historial de {ejercicio_elegido} para {usuario_activo}:")
         
         # B. TABLA CON ÍNDICES PARA ELIMINAR
-        df_mostrar = df_filtrado[['index', 'Fecha', 'Ejercicio', 'Peso (kg)', 'Reps', 'Notas', 'Volumen (kg)']]
+        # Quitamos 'Notas' de la tabla para que se vea más limpio
+        df_mostrar = df_filtrado[['index', 'Fecha', 'Ejercicio', 'Peso (kg)', 'Reps', 'Volumen (kg)']]
         df_mostrar = df_mostrar.rename(columns={'index': 'ID'})
 
         st.dataframe(df_mostrar, use_container_width=True, hide_index=True)
