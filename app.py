@@ -20,8 +20,7 @@ ARCHIVO_DATOS = "entrenamientos.csv"
 # Nombres de Usuarios
 USUARIOS = ["Santi", "Mel"]
 
-# ACTUALIZACIÓN: Definición de las rutinas semanales (CON SERIES)
-# La rutina ahora es una lista de diccionarios: [{"name": "Ejercicio", "series": 4}, ...]
+# Definición de las rutinas semanales (CON SERIES)
 DICT_RUTINAS = {
     "Santi": {
         "Monday": [
@@ -73,20 +72,33 @@ DICT_RUTINAS = {
     }
 }
 
-def cargar_datos():
+# La función cargar_datos ya no es global para evitar problemas de re-ejecución
+def cargar_datos(reset_index=True):
     if os.path.exists(ARCHIVO_DATOS):
         df = pd.read_csv(ARCHIVO_DATOS)
-        df['Fecha'] = pd.to_datetime(df['Fecha']).dt.date
         
+        # Convertir a datetime y luego a date object
+        df['Fecha'] = pd.to_datetime(df['Fecha']).apply(lambda x: x.date()) 
+        
+        # Asegurar columna Notas para registros antiguos que no la tienen
+        if 'Notas' not in df.columns:
+            df['Notas'] = " "
+        
+        # Cálculo de Volumen Total por registro
         df['Volumen (kg)'] = df['Peso (kg)'] * df['Reps']
         
         if 'Usuario' not in df.columns:
             df['Usuario'] = USUARIOS[0] 
         
-        return df.sort_values(by='Fecha', ascending=False).reset_index()
+        if reset_index:
+             # Retornamos el index para usarlo como ID de eliminación
+             return df.sort_values(by='Fecha', ascending=False).reset_index()
+        else:
+             # Para guardar, retornamos el DataFrame sin el índice extra
+             return df.sort_values(by='Fecha', ascending=False)
     else:
         # Quitamos "Notas" de las columnas de inicialización
-        return pd.DataFrame(columns=["index", "Usuario", "Fecha", "Ejercicio", "Peso (kg)", "Reps", "Volumen (kg)"])
+        return pd.DataFrame(columns=["index", "Usuario", "Fecha", "Ejercicio", "Peso (kg)", "Reps", "Notas", "Volumen (kg)"])
 
 df = cargar_datos()
 
@@ -111,7 +123,8 @@ if menu == "✍️ Registrar Rutina":
     
     st.subheader(f"🗓️ {dia_semana_espanol}, {fecha_actual}")
     
-    # NUEVA LÓGICA: Construir la lista de ejercicios para mostrar y para el selectbox
+    # Construir la lista de ejercicios para mostrar y para el selectbox
+    ejercicios_opciones = []
     
     if ejercicios_del_dia[0]["name"] == "Descanso":
          st.info(f"¡Hola {usuario_activo}! Hoy es **{dia_semana_espanol}**. Te toca: **¡Descanso!** 🧘")
@@ -125,49 +138,115 @@ if menu == "✍️ Registrar Rutina":
         
         # Lista solo con los nombres para el selectbox
         ejercicios_opciones = [e["name"] for e in ejercicios_del_dia]
+        
 
-
-    # --- Formulario de Registro ---
-    st.subheader(f"Registro de Serie")
+    # --- Formulario de Registro por Múltiples Series ---
+    st.subheader(f"Registro de Series para {usuario_activo}")
     
-    with st.form("registro_form"):
-        col1, col2 = st.columns(2) 
-        
-        with col1:
-            fecha = st.date_input("Fecha", date.today(), key='date')
-            
-            # FILTRADO DE EJERCICIOS
-            ejercicio = st.selectbox("Ejercicio", ejercicios_opciones, key='ej')
-        
-        with col2:
-            peso = st.number_input("Peso (kg)", min_value=0.0, step=0.5, key='peso')
-            reps = st.number_input("Repeticiones", min_value=1, step=1, key='reps')
+    # 1. Seleccionar el Ejercicio a Registrar
+    ejercicio_a_registrar = st.selectbox(
+        "Selecciona el Ejercicio que acabas de terminar:", 
+        ejercicios_opciones, 
+        key='ej_reg'
+    )
 
+    # 2. Encontrar el número de series planificadas
+    series_count = 0
+    if ejercicio_a_registrar != "Descanso":
+        for e in ejercicios_del_dia:
+            if e["name"] == ejercicio_a_registrar:
+                series_count = e["series"]
+                break
+    
+    # 3. Generar el formulario dinámico
+    if series_count > 0:
         st.markdown("---")
-        guardar_button = st.form_submit_button("✅ Guardar Serie")
+        st.markdown(f"**Ingresa los datos de tus {series_count} series de {ejercicio_a_registrar}**")
+        
+        with st.form("registro_multiple_form"):
+            fecha = st.date_input("Fecha de Entrenamiento", date.today(), key='date')
+            
+            st.markdown("---")
+            
+            # Encabezados de la tabla
+            colA, colB, colC = st.columns([1, 2, 2])
+            with colA: st.markdown("**Serie**")
+            with colB: st.markdown("**Peso (kg)**")
+            with colC: st.markdown("**Repeticiones**")
 
-        if guardar_button and ejercicio != "Descanso":
-            nuevo_registro = pd.DataFrame({
-                "Usuario": [usuario_activo],
-                "Fecha": [fecha],
-                "Ejercicio": [ejercicio],
-                "Peso (kg)": [peso],
-                "Reps": [reps],
-                "Notas": [" "], 
-            })
-            
-            df = pd.concat([df, nuevo_registro], ignore_index=True)
-            df.to_csv(ARCHIVO_DATOS, index=False)
-            
-            st.success(f"¡Entrenamiento de {usuario_activo} guardado con éxito!")
-        elif guardar_button and ejercicio == "Descanso":
-             st.warning("No puedes registrar una serie si seleccionas 'Descanso'.")
+            # Loop para crear campos de entrada para cada serie
+            for i in range(1, series_count + 1):
+                colA, colB, colC = st.columns([1, 2, 2])
+                
+                with colA:
+                    st.markdown(f"**{i}**")
+                with colB:
+                    # Input de Peso
+                    st.number_input(
+                        f"Peso (kg) - S{i}", 
+                        min_value=0.0, 
+                        step=0.5, 
+                        value=0.0, 
+                        key=f'peso_{i}', 
+                        label_visibility='collapsed' # Ocultar la etiqueta del número
+                    )
+                with colC:
+                    # Input de Repeticiones
+                    st.number_input(
+                        f"Repeticiones - S{i}", 
+                        min_value=0, 
+                        step=1, 
+                        value=10, 
+                        key=f'reps_{i}', 
+                        label_visibility='collapsed'
+                    )
+                
+            st.markdown("---")
+            guardar_button = st.form_submit_button(f"✅ Guardar {series_count} Series de {ejercicio_a_registrar}")
+
+            if guardar_button:
+                # 4. Lógica de Guardado por Lotes (Batch Save)
+                nuevos_registros = []
+                for i in range(1, series_count + 1):
+                    # Recuperar valores del estado de la sesión
+                    peso_val = st.session_state.get(f'peso_{i}', 0.0)
+                    reps_val = st.session_state.get(f'reps_{i}', 0)
+                    
+                    # Solo guardar series con valores válidos (mayor a cero)
+                    if peso_val > 0.0 and reps_val > 0:
+                        nuevos_registros.append({
+                            "Usuario": usuario_activo,
+                            "Fecha": fecha,
+                            "Ejercicio": ejercicio_a_registrar,
+                            "Peso (kg)": peso_val,
+                            "Reps": reps_val,
+                            "Notas": " ",
+                        })
+                
+                if nuevos_registros:
+                    # Cargar los datos existentes directamente del CSV (sin las columnas temporales 'index' y 'Volumen')
+                    df_existente = pd.read_csv(ARCHIVO_DATOS)
+                    nuevo_df = pd.DataFrame(nuevos_registros)
+                    
+                    # Concatenar y guardar el DataFrame final
+                    df_final = pd.concat([df_existente, nuevo_df], ignore_index=True)
+                    df_final.to_csv(ARCHIVO_DATOS, index=False)
+                    
+                    st.success(f"¡{len(nuevos_registros)} series de {ejercicio_a_registrar} guardadas con éxito para {usuario_activo}!")
+                    # Recargar la app para limpiar el formulario
+                    st.rerun() 
+                else:
+                    st.warning("No se guardó ninguna serie. Asegúrate de ingresar Peso y Repeticiones mayores a cero.")
+    elif ejercicio_a_registrar == "Descanso":
+         st.warning("Selecciona un ejercicio válido o disfruta de tu día de descanso.")
 
 
 # --- 3. OPCIÓN B: VER HISTORIAL ---
 elif menu == "📊 Ver Historial":
     
-    df_usuario = df[df['Usuario'] == usuario_activo]
+    # Cargar datos con reset_index=True para la visualización
+    df_actual = cargar_datos(reset_index=True) 
+    df_usuario = df_actual[df_actual['Usuario'] == usuario_activo]
     
     st.subheader(f"Tu Progreso Detallado: {usuario_activo}")
     
@@ -184,58 +263,4 @@ elif menu == "📊 Ver Historial":
 
         df_filtrado = df_filtrado.reset_index()
 
-        col_metrica1, col_metrica2, col_metrica3, col_metrica4 = st.columns(4)
-        
-        with col_metrica1:
-            st.metric(label="Total de Series", value=f"{len(df_filtrado)} Series")
-        
-        with col_metrica2:
-            max_peso = df_filtrado['Peso (kg)'].max() if not df_filtrado.empty else 0
-            st.metric(label="Peso Máximo (kg)", value=f"{max_peso} kg")
-            
-        with col_metrica3:
-            if not df_usuario.empty: 
-                 ultima_fecha = df_usuario['Fecha'].iloc[0].strftime('%d %b')
-            else:
-                 ultima_fecha = "N/A"
-            st.metric(label="Último Entrenamiento", value=ultima_fecha)
-
-        with col_metrica4:
-            volumen_total = df_filtrado['Volumen (kg)'].sum() if not df_filtrado.empty else 0
-            st.metric(label="Volumen Total (kg)", value=f"{volumen_total:,.0f} kg")
-
-        st.markdown("---")
-        st.write(f"Historial de {ejercicio_elegido} para {usuario_activo}:")
-        
-        # B. TABLA CON ÍNDICES PARA ELIMINAR
-        df_mostrar = df_filtrado[['index', 'Fecha', 'Ejercicio', 'Peso (kg)', 'Reps', 'Volumen (kg)']]
-        df_mostrar = df_mostrar.rename(columns={'index': 'ID'})
-
-        st.dataframe(df_mostrar, use_container_width=True, hide_index=True)
-        
-        # C. SECCIÓN DE ELIMINACIÓN
-        st.markdown("---")
-        st.error(f"🚨 ¿Quieres eliminar un registro de {usuario_activo}?")
-        
-        opciones_id = df_mostrar['ID'].tolist()
-        
-        if opciones_id:
-            col_del1, col_del2 = st.columns([1, 4])
-            
-            with col_del1:
-                id_a_eliminar = st.selectbox("Selecciona el ID a eliminar:", opciones_id)
-            
-            with col_del2:
-                st.markdown('<br>', unsafe_allow_html=True)
-                if st.button(f"🔴 CONFIRMAR ELIMINACIÓN de ID {id_a_eliminar}"):
-                    df = df.drop(index=id_a_eliminar).reset_index(drop=True)
-                    
-                    df.to_csv(ARCHIVO_DATOS, index=False)
-                    st.warning(f"✅ ¡Registro ID {id_a_eliminar} de {usuario_activo} eliminado! Presiona F5 para actualizar.")
-        else:
-            st.info(f"No hay registros para eliminar en este filtro para {usuario_activo}.")
-
-        # D. Gráfico
-        if ejercicio_elegido != "TODOS" and len(df_filtrado) > 1:
-            st.markdown("### Gráfico de Progreso") # CORRECCIÓN APLICADA AQUÍ
-            st.line_chart(df_filtrado.set_index('Fecha')['Peso (kg)'])
+        col_metrica1, col_met
