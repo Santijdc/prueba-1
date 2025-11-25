@@ -76,4 +76,14 @@ DICT_RUTINAS = {
 DIAS_SEMANA_ORDEN = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 DIAS_SEMANA_ESPANOL = {
     "Monday": "Lunes", "Tuesday": "Martes", "Wednesday": "Miércoles", 
-    "Thursday": "Jueves", "Friday": "Viernes", "Saturday
+    "Thursday": "Jueves", "Friday": "Viernes", "Saturday": "Sábado", "Sunday": "Domingo"
+}
+
+
+# La función cargar_datos ya no es global para evitar problemas de re-ejecución
+def cargar_datos(reset_index=True):
+    if os.path.exists(ARCHIVO_DATOS):
+        df = pd.read_csv(ARCHIVO_DATOS)
+        
+        # Convertir a datetime y luego a date object
+        df['Fecha'] = pd.to_datetime
