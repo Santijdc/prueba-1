@@ -31,61 +31,55 @@ conn_progresos = st.connection("gsheets_progresos", type=GSheetsConnection,
 # Nombres de Usuarios
 USUARIOS = ["Santi", "Mel"]
 
-# Definición de las rutinas semanales
+# Definición de las rutinas semanales (CON SERIES, DESCANSO Y GRUPO MUSCULAR)
 DICT_RUTINAS = {
-    "Santi": [
-        # (Aquí iría el contenido de tu diccionario DICT_RUTINAS, 
-        # lo he omitido para no hacer el código excesivamente largo, 
-        # asume que está el mismo código que tenías)
-        # ... (Mantén toda la definición de DICT_RUTINAS aquí)
-        # ...
-        "Santi": {
+    "Santi": {
         "Monday": [
-            {"name": "Press Inclinado Barra", "series": 4, "rest": "1:30"},
-            {"name": "Press Inclinado Máquina", "series": 4, "rest": "1:30"},
-            {"name": "Press Plano Máquina", "series": 4, "rest": "1:30"}, 
-            {"name": "Triceps Tras Nuca", "series": 4, "rest": "1:00"}, 
-            {"name": "Elevaciones Laterales Polea", "series": 4, "rest": "1:00"},
+            {"name": "Press Inclinado Barra", "series": 4, "rest": "1:30", "group": "Pecho"},
+            {"name": "Press Inclinado Máquina", "series": 4, "rest": "1:30", "group": "Pecho"},
+            {"name": "Press Plano Máquina", "series": 4, "rest": "1:30", "group": "Pecho"}, 
+            {"name": "Triceps Tras Nuca", "series": 4, "rest": "1:00", "group": "Tríceps"}, 
+            {"name": "Elevaciones Laterales Polea", "series": 4, "rest": "1:00", "group": "Hombro Lateral"},
         ],
         "Tuesday": [
-            {"name": "Sentadilla", "series": 3, "rest": "2:00"},
-            {"name": "Femoral Sentado", "series": 4, "rest": "1:30"},
-            {"name": "Prensa", "series": 3, "rest": "2:00"},
-            {"name": "Sillón Cuádriceps", "series": 3, "rest": "1:30"},
-            {"name": "Gemelo", "series": 4, "rest": "1:00"},
+            {"name": "Sentadilla", "series": 3, "rest": "2:00", "group": "Cuádriceps"},
+            {"name": "Femoral Sentado", "series": 4, "rest": "1:30", "group": "Femorales"},
+            {"name": "Prensa", "series": 3, "rest": "2:00", "group": "Cuádriceps"},
+            {"name": "Sillón Cuádriceps", "series": 3, "rest": "1:30", "group": "Cuádriceps"},
+            {"name": "Gemelo", "series": 4, "rest": "1:00", "group": "Gemelos"},
         ],
         "Wednesday": [
-            {"name": "Jalón al Pecho", "series": 4, "rest": "1:30"},
-            {"name": "Remo Máquina", "series": 4, "rest": "1:30"},
-            {"name": "Remo Gironda", "series": 4, "rest": "1:30"},
-            {"name": "Bíceps con Barra", "series": 4, "rest": "1:00"},
-            {"name": "Elevaciones Laterales Polea", "series": 4, "rest": "1:00"},
+            {"name": "Jalón al Pecho", "series": 4, "rest": "1:30", "group": "Espalda"},
+            {"name": "Remo Máquina", "series": 4, "rest": "1:30", "group": "Espalda"},
+            {"name": "Remo Gironda", "series": 4, "rest": "1:30", "group": "Espalda"},
+            {"name": "Bíceps con Barra", "series": 4, "rest": "1:00", "group": "Bíceps"},
+            {"name": "Elevaciones Laterales Polea", "series": 4, "rest": "1:00", "group": "Hombro Lateral"},
         ],
         "Thursday": [
-            {"name": "Press Inclinado Barra", "series": 4, "rest": "1:30"},
-            {"name": "Jalón al Pecho", "series": 4, "rest": "1:30"},
-            {"name": "Posterior en Polea", "series": 4, "rest": "1:30"},
-            {"name": "Triceps Tras Nuca", "series": 4, "rest": "1:00"},
-            {"name": "Bíceps en Polea", "series": 4, "rest": "1:00"},
-            {"name": "Elevaciones Laterales Polea", "series": 4, "rest": "1:00"},
+            {"name": "Press Inclinado Barra", "series": 4, "rest": "1:30", "group": "Pecho"},
+            {"name": "Jalón al Pecho", "series": 4, "rest": "1:30", "group": "Espalda"},
+            {"name": "Posterior en Polea", "series": 4, "rest": "1:30", "group": "Hombro Posterior"},
+            {"name": "Triceps Tras Nuca", "series": 4, "rest": "1:00", "group": "Tríceps"},
+            {"name": "Bíceps en Polea", "series": 4, "rest": "1:00", "group": "Bíceps"},
+            {"name": "Elevaciones Laterales Polea", "series": 4, "rest": "1:00", "group": "Hombro Lateral"},
         ],
         "Friday": [
-            {"name": "Peso Muerto Rumano", "series": 3, "rest": "2:00"},
-            {"name": "Prensa", "series": 3, "rest": "2:00"},
-            {"name": "Camilla Femorales", "series": 4, "rest": "1:30"},
-            {"name": "Sillón Cuádriceps", "series": 4, "rest": "1:30"},
+            {"name": "Peso Muerto Rumano", "series": 3, "rest": "2:00", "group": "Femorales"},
+            {"name": "Prensa", "series": 3, "rest": "2:00", "group": "Cuádriceps"},
+            {"name": "Camilla Femorales", "series": 4, "rest": "1:30", "group": "Femorales"},
+            {"name": "Sillón Cuádriceps", "series": 4, "rest": "1:30", "group": "Cuádriceps"},
         ],
-        "Saturday": [{"name": "Descanso", "series": 0, "rest": "N/A"}],
-        "Sunday": [{"name": "Descanso", "series": 0, "rest": "N/A"}]
+        "Saturday": [{"name": "Descanso", "series": 0, "rest": "N/A", "group": "Descanso"}],
+        "Sunday": [{"name": "Descanso", "series": 0, "rest": "N/A", "group": "Descanso"}]
     },
     "Mel": {
-        "Monday": [{"name": "Descanso", "series": 0, "rest": "N/A"}],
-        "Tuesday": [{"name": "Descanso", "series": 0, "rest": "N/A"}],
-        "Wednesday": [{"name": "Descanso", "series": 0, "rest": "N/A"}],
-        "Thursday": [{"name": "Descanso", "series": 0, "rest": "N/A"}],
-        "Friday": [{"name": "Descanso", "series": 0, "rest": "N/A"}],
-        "Saturday": [{"name": "Descanso", "series": 0, "rest": "N/A"}],
-        "Sunday": [{"name": "Descanso", "series": 0, "rest": "N/A"}]
+        "Monday": [{"name": "Descanso", "series": 0, "rest": "N/A", "group": "Descanso"}],
+        "Tuesday": [{"name": "Descanso", "series": 0, "rest": "N/A", "group": "Descanso"}],
+        "Wednesday": [{"name": "Descanso", "series": 0, "rest": "N/A", "group": "Descanso"}],
+        "Thursday": [{"name": "Descanso", "series": 0, "rest": "N/A", "group": "Descanso"}],
+        "Friday": [{"name": "Descanso", "series": 0, "rest": "N/A", "group": "Descanso"}],
+        "Saturday": [{"name": "Descanso", "series": 0, "rest": "N/A", "group": "Descanso"}],
+        "Sunday": [{"name": "Descanso", "series": 0, "rest": "N/A", "group": "Descanso"}]
     }
 }
 ]
