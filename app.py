@@ -82,7 +82,7 @@ DICT_RUTINAS = {
         "Sunday": [{"name": "Descanso", "series": 0, "rest": "N/A", "group": "Descanso"}]
     }
 }
-]
+
 
 # Los días de la semana en el orden correcto
 DIAS_SEMANA_ORDEN = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
